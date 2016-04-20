@@ -9,6 +9,7 @@ public class Node {
 
     public Node(int port){
         idNode = new IdNode("localhost", port);
-        //contact
+        //contactserver for list of nodes
+        //set successor and/or predecessor if list is not empty
     }
 }
