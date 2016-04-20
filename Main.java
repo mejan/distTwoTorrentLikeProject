@@ -5,7 +5,7 @@
 import ClientGUI.MainWindow;
 import java.awt.*;
 import java.security.NoSuchAlgorithmException;
-import Hash.Hash;
+import DHash.Hash;
 
 public class Main {
 

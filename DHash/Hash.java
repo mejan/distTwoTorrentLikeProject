@@ -6,7 +6,6 @@ package DHash;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.logging.Logger;
 
 
 public class Hash {
