@@ -20,6 +20,7 @@ public class Hash {
         return toId(md.digest());
     }
 
+
     public static int toId(byte[] hashBytes){
         /*ArrayList tmp = new ArrayList<Integer>();
         for(int i=0; i<m/8; i++){

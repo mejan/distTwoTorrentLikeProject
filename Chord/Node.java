@@ -14,13 +14,21 @@ public interface Node extends Remote {
 
 
     public IdNode getIdNode() throws RemoteException;
+
     public IdNode getSuccessor() throws RemoteException;
+
     public IdNode getPredecessor() throws RemoteException;
 
     public void setSuccessor(IdNode successor) throws RemoteException;
+
     public void setPredecessor(IdNode predecessor) throws RemoteException;
 
     public IdNode findSuccessor(int id) throws RemoteException , NotBoundException, MalformedURLException;
+
+    public IdNode findCloestPrecedingFinger(int id) throws RemoteException;
+
+
+    public void updateFingerTable(IdNode idNode, int i) throws RemoteException, NotBoundException, MalformedURLException;
 
 
 }

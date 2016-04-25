@@ -9,16 +9,30 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.Enumeration;
 
-
+import java.util.ArrayList;
 public class Main {
 
     public static void main(String[] args)  {
         try{
             SuperNodeImpl superNode = new SuperNodeImpl(5000);
-            NodeImpl node = new NodeImpl(30000);
-            NodeImpl node2 = new NodeImpl(15000);
-            Chord.join(node);
-            Chord.join(node2);
+            ArrayList<NodeImpl> nodes = new ArrayList<>();
+            for(int port = 8000; port < 8500; port++){
+                Thread.sleep(100);
+                NodeImpl node = new NodeImpl(port);
+                Chord.join(node);
+                nodes.add(node);
+            }
+            System.out.println("Finger taable: ");
+
+
+            for(NodeImpl n : nodes){
+
+                for(Finger f : n.getFingerTable()){
+                    System.out.println("FingerId: " + f.getId() + '\t' + " FingerNodeId: " + f.getIdNode());
+                }
+                System.out.println("\n\n");
+            }
+
 
 
 

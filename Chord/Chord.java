@@ -16,18 +16,19 @@ public class Chord {
 
     public static void join(NodeImpl node) throws IOException {
         superNodeIp = InetAddress.getLocalHost().getHostAddress();
-        System.out.println("Ip: "+ superNodeIp);
+        //System.out.println("Ip: "+ superNodeIp);
         try {
             SuperNode superNode = (SuperNode)Naming.lookup("//" + superNodeIp + ":" + superNodePort + "/nodeList");
             IdNode closestNode = superNode.getClosestNode(node.getIdNode());
             superNode.addNode(node.getIdNode());
-            //TODO: fix that we change the fingerIdNode of each fingerId
+            //TODO:
+            // fix that we change the fingerIdNode of each fingerId
             if(closestNode == null){
                 System.out.println("We are alone");
                 for(int i = 0; i < Hash.HASH_LENGTH; i++){
                     IdNode idNode = node.getIdNode();
-                    Finger finger = new Finger(getFingerIdOf(idNode.getId(), i), idNode);
-                    node.setFinger(i, finger);
+                    node.setFingerIdSuccessor(i, idNode);
+
                 }
                 node.setPredecessor(node.getIdNode());
                 node.setSuccessor(node.getIdNode());
@@ -38,11 +39,11 @@ public class Chord {
 
 
             else{
-                System.out.println("We are node: " + node.getIdNode().toString());
-                System.out.println("Found node n' to connect via: " + closestNode.toString());
+                //System.out.println("We are node: " + node.getIdNode().toString());
+                //System.out.println("Found node n' to connect via: " + closestNode.toString());
 
                 node.initFingerTable(closestNode);
-                //update_others();
+                node.updateOthers();
 
             }
 

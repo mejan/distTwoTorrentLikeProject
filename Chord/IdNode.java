@@ -44,6 +44,7 @@ public class IdNode implements Serializable, Comparable<IdNode>, Comparator<IdNo
         return Integer.valueOf(ip) + port  + id;
     }
 
+
     @Override
     public boolean equals(Object o){
         if(!(o instanceof IdNode)) return false;

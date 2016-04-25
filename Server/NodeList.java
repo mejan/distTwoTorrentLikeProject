@@ -16,10 +16,11 @@ public class NodeList implements Serializable {
         if(idNode == null) throw new RuntimeException("Cannot add null node");
         synchronized (nodeList){
             nodeList.add(idNode);
-            System.out.println("Added new node "+idNode.toString());
+            //System.out.println("Added new node "+idNode.toString());
         }
         sortList();
     }
+
 
     public void removeNode(IdNode idNode){
         if(idNode == null) throw new RuntimeException("Cannot remove null node");

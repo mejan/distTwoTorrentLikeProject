@@ -26,6 +26,7 @@ public class SuperNodeImpl extends UnicastRemoteObject implements SuperNode {
 
         Naming.bind("//" + this.ip + ":" + this.port + "/nodeList", this);
     }
+
     public IdNode getClosestNode(IdNode idNode){
         return nodeList.getClosestNode(idNode);
     }

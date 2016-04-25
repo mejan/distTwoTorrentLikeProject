@@ -9,4 +9,5 @@ import Chord.*;
 public interface SuperNode extends Remote {
     public IdNode getClosestNode(IdNode idNode) throws RemoteException;
     public void addNode(IdNode idNode) throws RemoteException;
+
 }
