@@ -1,57 +1,58 @@
-package Chord; /**
+package Chord;
+/**
  * Created by heka1203 on 2016-04-20.
  */
 
+import Server.SuperNode;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.net.InetAddress;
-import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.rmi.Naming;
+import java.rmi.NotBoundException;
+
 
 public class Chord {
-   /* private static final String serverIp = "localhost";
-    private static final int serverPort = 10005;
+    private static String superNodeIp;
+    private static int superNodePort = 5000;
 
-    public static void join(Chord.NodeImpl node) throws IOException {
-        Socket socket = new Socket(InetAddress.getByName(serverIp), serverPort);
-        try(ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-            ObjectInputStream in = new ObjectInputStream(socket.getInputStream())){
+    public static void join(NodeImpl node) throws IOException {
+        superNodeIp = InetAddress.getLocalHost().getHostAddress();
+        System.out.println("Ip: "+ superNodeIp);
+        try {
+            SuperNode superNode = (SuperNode)Naming.lookup("//" + superNodeIp + ":" + superNodePort + "/nodeList");
+            IdNode closestNode = superNode.getClosestNode(node.getIdNode());
+            superNode.addNode(node.getIdNode());
+            //TODO: fix that we change the fingerIdNode of each fingerId
+            if(closestNode == null){
+                System.out.println("We are alone");
+                for(int i = 0; i < Hash.HASH_LENGTH; i++){
+                    IdNode idNode = node.getIdNode();
+                    Finger finger = new Finger(getFingerIdOf(idNode.getId(), i), idNode);
+                    node.setFinger(i, finger);
+                }
+                node.setPredecessor(node.getIdNode());
+                node.setSuccessor(node.getIdNode());
+                /*for(Finger f : node.getFingerTable()){
+                    System.out.println(f.getId());
+                }*/
+            }
 
-            out.writeObject(node.getIdNode());
-            List<IdNode> nodeList = (ArrayList<IdNode>)in.readObject();
 
-            IdNode successorId = findSuccessor(node.getIdNode(), nodeList);
-            IdNode predecessorId = findPredecessor(node.getIdNode(), nodeList);
-            node.setSuccessor(successorId);
-            node.setPredecessor(predecessorId);
-        } catch (ClassNotFoundException e) {
-            System.err.println("Could not typecast read object to list");
-            if(socket != null)
-                socket.close();
-        } finally{
-            if(socket != null)
-                socket.close();
+            else{
+                System.out.println("We are node: " + node.getIdNode().toString());
+                System.out.println("Found node n' to connect via: " + closestNode.toString());
+
+                node.initFingerTable(closestNode);
+                //update_others();
+
+            }
+
+
+        } catch (NotBoundException e) {
+            System.err.println("There is no super node.......");
         }
     }
 
-    public static IdNode findSuccessor(IdNode idNode, List<IdNode> nodeList){
-        int index = Collections.binarySearch(nodeList, idNode);
-        if(index >= 0 && (nodeList.size()-1) > index){
-            System.out.println("This node found (findSuccessor)");
-            return nodeList.get(index+1);
-        }
-        return null;
+    public static int getFingerIdOf(int id, int i){
+        return (id+ (int)Math.pow(2, i)) % (int)Math.pow(2, Hash.HASH_LENGTH);
     }
-
-    public static IdNode findPredecessor(IdNode idNode, List<IdNode> nodeList){
-        int index = Collections.binarySearch(nodeList, idNode);
-        if(index > 0){
-            System.out.println("This node found (findPredecessor)");
-            return nodeList.get(index-1);
-        }
-        return null;
-    }*/
 }

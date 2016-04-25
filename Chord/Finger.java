@@ -9,14 +9,19 @@ public class Finger {
 
     Finger(int toId, IdNode toNode){
         id = toId;
-        node = new IdNode(toNode);
+        node = toNode;
     }
 
-    public IdNode getNode(){
+    public IdNode getIdNode(){
         return node;
     }
 
     public int getId(){
         return id;
     }
+
+    public void setId(int toSet){id = toSet; }
+
+    public void setIdNode(IdNode toNode){node = toNode;}
+
 }

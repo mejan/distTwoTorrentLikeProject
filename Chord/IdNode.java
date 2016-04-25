@@ -6,24 +6,21 @@ import java.util.Comparator;
 /**
  * Created by mejan on 2016-04-22.
  */
-public class IdNode implements Serializable { /*, Comparable<IdNode>, Comparator<IdNode> */
+public class IdNode implements Serializable, Comparable<IdNode>, Comparator<IdNode>  {
 
 
     private String ip;
     private int port;
-    private int id;
+    private final int id;
 
 
-    public IdNode(String ip, int port){
+    public IdNode(String ip, int port) throws NoSuchAlgorithmException{
         this.ip = ip;
         this.port = port;
-        try {
-            id = Hash.hash(ip + port);
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
+        this.id = Hash.hash(ip + port);
     }
 
+    //??
     public IdNode(IdNode toSet){
         ip = toSet.getIp();
         port = toSet.getPort();
@@ -42,10 +39,16 @@ public class IdNode implements Serializable { /*, Comparable<IdNode>, Comparator
         return id;
     }
 
+    @Override
+    public int hashCode(){
+        return Integer.valueOf(ip) + port  + id;
+    }
+
+    @Override
     public boolean equals(Object o){
+        if(!(o instanceof IdNode)) return false;
         if(o == this) return true;
-        else if(o == null) return false;
-        else return this.toString().equals(o.toString());
+        return this.getId() == ((IdNode) o).getId();
     }
 
     @Override
@@ -53,14 +56,18 @@ public class IdNode implements Serializable { /*, Comparable<IdNode>, Comparator
         return String.valueOf(id);
     }
 
-    //Behövs detta???
-    /*
+
     @Override
     public int compare(IdNode o1, IdNode o2) {
-        return o1.toString().compareToIgnoreCase(o2.toString());
+        return Integer.compare(o1.getId(), o2.getId());
     }
+
     @Override
     public int compareTo(IdNode o) {
-        return this.toString().compareToIgnoreCase(o.toString());
-    }*/
+        return Integer.compare(this.getId(), o.getId());
+    }
+
+
+    //Behövs detta???
+
 }

@@ -3,35 +3,44 @@
  */
 
 import Chord.*;
+import Server.SuperNodeImpl;
 
 import java.net.InetAddress;
-import java.net.MalformedURLException;
-import java.net.UnknownHostException;
-import java.rmi.Naming;
-import java.rmi.NotBoundException;
-import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.net.NetworkInterface;
+import java.util.Enumeration;
 
 
 public class Main {
 
     public static void main(String[] args)  {
         try{
+            SuperNodeImpl superNode = new SuperNodeImpl(5000);
             NodeImpl node = new NodeImpl(30000);
             NodeImpl node2 = new NodeImpl(15000);
-            //NodeImpl n = (NodeImpl)LocateRegistry.getRegistry(InetAddress.getLocalHost().getHostAddress(), 10005);
-            //Node n2 = (Node)LocateRegistry.getRegistry(InetAddress.getLocalHost().getHostAddress(), 30000);
-           // System.out.println(n.toString());
-            //System.out.println(n2.toString());
+            Chord.join(node);
+            Chord.join(node2);
+
+
+
         }catch(Exception e){
-            System.out.println("err" + e.getMessage());
+            e.printStackTrace();
+            //System.err.println(e.getStackTrace());
+
             System.exit(0);
         }
 
         System.exit(0);
     }
-
 }
+
+
+/*Enumeration<NetworkInterface> nInterfaces = NetworkInterface.getNetworkInterfaces();
+
+while (nInterfaces.hasMoreElements()) {
+    Enumeration<InetAddress> inetAddresses = nInterfaces.nextElement().getInetAddresses();
+    while (inetAddresses.hasMoreElements()) {
+        String address = inetAddresses.nextElement().getHostAddress();
+        if(address.contains("192.168"))
+            System.out.println(address);
+    }
+}*/

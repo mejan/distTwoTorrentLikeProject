@@ -9,7 +9,8 @@ import java.security.NoSuchAlgorithmException;
 public class Hash {
     private static final String DEFAULT_HASH_METHOD = "SHA-1";
     private static MessageDigest md;
-    public static int m = 16; //hash # bits
+    public static int HASH_LENGTH = 16; //hash # bits
+
     private Hash(){}
 
     public static int hash(String toHash) throws NoSuchAlgorithmException {
