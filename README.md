@@ -1,4 +1,4 @@
 #"Torrent Like"
-This is a school project with Henrik Karlsson and I.
+This is a school project with fjantztone and I.
 
 It will probably be far from a torrent system and will probably contain bugs.
