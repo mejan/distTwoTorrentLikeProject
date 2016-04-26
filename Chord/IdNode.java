@@ -68,7 +68,4 @@ public class IdNode implements Serializable, Comparable<IdNode>, Comparator<IdNo
         return Integer.compare(this.getId(), o.getId());
     }
 
-
-    //Behövs detta???
-
 }

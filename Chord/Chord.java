@@ -19,41 +19,29 @@ public class Chord {
         //System.out.println("Ip: "+ superNodeIp);
         try {
             SuperNode superNode = (SuperNode)Naming.lookup("//" + superNodeIp + ":" + superNodePort + "/nodeList");
-            IdNode closestNode = superNode.getClosestNode(node.getIdNode());
+            IdNode closestNodeId = superNode.getClosestNode(node.getIdNode());
             superNode.addNode(node.getIdNode());
-            //TODO:
-            // fix that we change the fingerIdNode of each fingerId
-            if(closestNode == null){
-                System.out.println("We are alone");
-                for(int i = 0; i < Hash.HASH_LENGTH; i++){
-                    IdNode idNode = node.getIdNode();
-                    node.setFingerIdSuccessor(i, idNode);
+            if(closestNodeId == null){
 
+                for(int i = 0; i < node.getFingerTable().size(); i++){
+                    node.setFingerNode(0, node);
                 }
-                node.setPredecessor(node.getIdNode());
-                node.setSuccessor(node.getIdNode());
-                /*for(Finger f : node.getFingerTable()){
-                    System.out.println(f.getId());
-                }*/
+                node.setPredecessor(node);
+                node.setSuccessor(node);
             }
 
 
             else{
-                //System.out.println("We are node: " + node.getIdNode().toString());
-                //System.out.println("Found node n' to connect via: " + closestNode.toString());
-
+                Node closestNode = node.lookupNode(closestNodeId);
                 node.initFingerTable(closestNode);
                 node.updateOthers();
-
+                //TODO: Fix the update.
             }
-
+            System.out.println("\n\n");
 
         } catch (NotBoundException e) {
-            System.err.println("There is no super node.......");
+            System.err.println("(Join) There is no super node.......");
         }
     }
 
-    public static int getFingerIdOf(int id, int i){
-        return (id+ (int)Math.pow(2, i)) % (int)Math.pow(2, Hash.HASH_LENGTH);
-    }
 }

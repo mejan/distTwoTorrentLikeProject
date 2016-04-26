@@ -16,21 +16,11 @@ public class Main {
         try{
             SuperNodeImpl superNode = new SuperNodeImpl(5000);
             ArrayList<NodeImpl> nodes = new ArrayList<>();
-            for(int port = 8000; port < 8500; port++){
+            for(int port = 8000; port < 8003; port++){
                 Thread.sleep(100);
                 NodeImpl node = new NodeImpl(port);
                 Chord.join(node);
                 nodes.add(node);
-            }
-            System.out.println("Finger taable: ");
-
-
-            for(NodeImpl n : nodes){
-
-                for(Finger f : n.getFingerTable()){
-                    System.out.println("FingerId: " + f.getId() + '\t' + " FingerNodeId: " + f.getIdNode());
-                }
-                System.out.println("\n\n");
             }
 
 
@@ -38,7 +28,6 @@ public class Main {
 
         }catch(Exception e){
             e.printStackTrace();
-            //System.err.println(e.getStackTrace());
 
             System.exit(0);
         }

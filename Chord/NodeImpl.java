@@ -19,21 +19,26 @@ import java.util.ArrayList;
 
 public class NodeImpl extends UnicastRemoteObject implements Node {
 
-    private IdNode successor;
-    private IdNode predecessor;
+    private Node successor;
+    private Node predecessor;
     private IdNode idNode;
     private ArrayList<Finger> fingerTable;
 
     public NodeImpl(int port) throws NoSuchAlgorithmException, RemoteException, UnknownHostException, AlreadyBoundException, MalformedURLException {
 
         this.idNode = new IdNode(InetAddress.getLocalHost().getHostAddress(), port);
-        this.fingerTable = new ArrayList<>(Hash.HASH_LENGTH); //initial capacity
-        for(int i = 0; i < Hash.HASH_LENGTH; i++){
-            int fingerId = Chord.getFingerIdOf(this.getIdNode().getId(), i);
-            fingerTable.add(i, new Finger(fingerId, null));
+        this.fingerTable = new ArrayList<>(Hash.HASH_LENGTH);
+        //init all indices
+        for(int i = 0; i < fingerTable.size(); i++){
+            //TODO: Fix error for chord member function getFingerIdOf (we said we will implementet here "direktly").
+            setFinger(i, new Finger(Chord.getFingerIdOf(this.getId(), i), null));
         }
         register(port); //try register
 
+    }
+
+    public int getId(){
+        return this.getIdNode().getId();
     }
 
     private void register(int port) throws RemoteException, AlreadyBoundException, MalformedURLException {
@@ -46,6 +51,9 @@ public class NodeImpl extends UnicastRemoteObject implements Node {
     private String getLookupUrl(IdNode idNode){
         return "//" + idNode.getIp() + ":" + idNode.getPort() + "/" + idNode.toString();
     }
+    public Node lookupNode(IdNode idNode) throws RemoteException, NotBoundException, MalformedURLException {
+        return (Node)Naming.lookup(getLookupUrl(idNode));
+    }
 
     public void setFinger(int index, Finger finger){
         fingerTable.add(index, finger);
@@ -55,136 +63,140 @@ public class NodeImpl extends UnicastRemoteObject implements Node {
         return fingerTable.get(index);
     }
 
-    public void setFingerIdSuccessor(int index, IdNode idNode){
-        fingerTable.get(index).setIdNode(idNode);
+    public Node getFingerNode(int index){
+        return getFinger(index).getNode();
+    }
+    public int getFingerId(int index){
+        return getFinger(index).getId();
+    }
+    public void setFingerNode (int index, Node idNode){
+        getFinger(index).setIdNode(idNode);
     }
 
-    public void initFingerTable(IdNode remoteId) throws RemoteException, NotBoundException, MalformedURLException {
-        //Find our first successor at entry 0 in the fingertable and set it
-        int fingerId = Chord.getFingerIdOf(getIdNode().getId(), 0);
-        Node remoteNode = (Node)Naming.lookup(getLookupUrl(remoteId));
-        IdNode remoteSuccessorId = remoteNode.findSuccessor(fingerId);
-        setFingerIdSuccessor(0, remoteSuccessorId);
-        //setFinger(0, new Finger(fingerId, remoteSuccessorId));
-        //Now find our successor.predecessor
-        Node remoteSuccessor = (Node)Naming.lookup(getLookupUrl(getSuccessor()));
-        setPredecessor(remoteSuccessor.getPredecessor());
-        //Setting seccessors predecesors to this node.
-        remoteSuccessor.setPredecessor(getIdNode());
-        //System.out.println("This node id: " + getIdNode().getId());
-        for (int index = 0; index < fingerTable.size()-1; index++){
-            if(isFingerInBetween(index)){
+    public void initFingerTable(Node node) throws RemoteException, NotBoundException, MalformedURLException {
+        //Setting self to this
+        Node self = this;
+        //Setting the first index node in finger table.
+        int firstId = (getId() + (int)Math.pow(2, 0)) % (int)Math.pow(2, fingerTable.size());
+        setFingerNode(0, findSuccessor(firstId));
 
-                setFingerIdSuccessor(index+1, getFinger(index).getIdNode());
+        //setting this nodes predecessor to successors predecessor
+        setPredecessor(getSuccessor().getPredecessor());
+
+        //Setting the successors predecessor to this node.
+        getSuccessor().setPredecessor(this);
+
+        //Fixing the rest of the finger table (without changing others)
+        for(int i = 0; i < fingerTable.size()-1; i++){
+            // check if fingerIndexID+1 is in interval n<= fingerIndexId+1 < fingerIndexNode.
+            if(isExceedingFinger(getFingerId(i+1), self, getFingerNode(i))){
+                //Set successor to fingerID+1 as fingerNode.
+                setFingerNode(i+1, getFingerNode(i));
             } else{
-                remoteNode = (Node)Naming.lookup(getLookupUrl(remoteId));
-                fingerId = getFinger(index+1).getId();
-                setFingerIdSuccessor(index+1, remoteNode.findSuccessor(fingerId));
+                //Find what will be fingerID+1's fingerNode.
+                setFingerNode(i+1, node.findSuccessor(getFingerId(i+1)));
             }
-
-            //setFingerIdSuccessor(index+1, getFinger(index).getIdNode());
         }
+    }
 
-        //System.out.println("First index is: " + getFinger(0).getId() +" Successor of first index: " + getFinger(0).getIdNode().getId());
-        //System.out.println("Our predecessor: " + getPredecessor().getId());
-        //implement remote methods
+    private boolean isExceedingFinger(int id, Node first, Node last) throws RemoteException {
+        if(first.getId() <= last.getId()){
+            return (id >= first.getId() && id < last.getId());
+        } else{
+            return (id >= first.getId() || id < last.getId());
+        }
     }
 
     public ArrayList<Finger> getFingerTable(){return fingerTable;}
 
     //Available remote methods goes here
-    public IdNode findSuccessor(int id) throws RemoteException, NotBoundException, MalformedURLException {
-        IdNode nodeId = findPredecessor(id);
-
-        String remoteUrl = getLookupUrl(nodeId);
-        Node node = (Node)Naming.lookup(remoteUrl);
-
+    public Node findSuccessor(int id) throws RemoteException, NotBoundException, MalformedURLException {
+        Node node = findPredecessor(id);
         return node.getSuccessor();
     }
 
-    public IdNode findPredecessor(int id) throws RemoteException, NotBoundException, MalformedURLException {
-        IdNode n = this.getIdNode();
-            int numHops = 0;
-            while(!isIdInBetween(id) && numHops != Hash.HASH_LENGTH){
-                Node remoteNode = (Node)Naming.lookup(getLookupUrl(n));
-                n = remoteNode.findCloestPrecedingFinger(id);
-                ++numHops;
-            }
-            /*while (!isIdInBetween(id)) {
-                node = findCloestPrecedingFinger(id);
-            }*/
-        return n;
+    public Node findPredecessor(int id) throws RemoteException, NotBoundException, MalformedURLException {
+        Node node = this;
+
+        while(!isBetweenSucc(id, node, node.getSuccessor())){
+            node = node.findClosestPrecedingFinger(id);
+        }
+        return node;
     }
 
+    private boolean isBetweenSucc(int id, Node first, Node last) throws RemoteException {
+        if(first.getId() <= last.getId()){
+            return (id > first.getId() && id <= last.getId());
+        } else{
+            return (id > first.getId() || id <= last.getId());
+        }
+    }
 
-    public IdNode findCloestPrecedingFinger(int id){
+    public Node findClosestPrecedingFinger(int id) throws RemoteException {
+        Node node = this;
         for(int i = fingerTable.size() - 1; i >= 0; i--){
-            Finger finger = getFinger(i);
-            if(isFingerInBetween(i, id)){
-                return finger.getIdNode();
+            if(isPrecedingFinger(id, node, getFingerNode(i))){
+                return getFingerNode(i);
             }
         }
-        return this.getIdNode();
+        return node;
     }
-
-    public boolean isFingerInBetween(int index){
-        int fingerId = getFinger(index + 1).getId();
-        int fingerIdNode = getFinger(index).getIdNode().getId();
-        //System.out.println(" this node: " + getIdNode().getId() + " fingerID: " + fingerId + " fingerIdNode" + fingerIdNode);
-        return this.getIdNode().getId() <= fingerId && fingerId < fingerIdNode;
-    }
-
-    public boolean isIdInBetween(int id){
-        if(this.getIdNode().getId() == this.getSuccessor().getId()){
-            return true;
+    
+    private boolean isPrecedingFinger(int last, Node first, Node check) throws RemoteException{
+        if(first.getId() <= last){
+            return (check.getId() > first.getId() &&  check.getId() < last);
+        } else {
+            return (check.getId() > first.getId() || check.getId() < last);
         }
-        //System.out.println("n':" + this.idNode.getId() + " id: " + id + " n'.successor" + this.getSuccessor().getId());
-        //System.out.println(this.idNode.getId() < id && id <= this.getSuccessor().getId());
-        return this.idNode.getId() < id && id <= this.getSuccessor().getId(); //|| (this.getSuccessor().getId() <= id && id < this.idNode.getId();
-    }
-
-    public boolean isFingerInBetween(int index, int id){
-        return (id < getFinger(index).getIdNode().getId() && getFinger(index).getIdNode().getId() < this.idNode.getId()); // ||  (this.idNode.getId()  getFinger(index).getIdNode().getId() && getFinger(index).getId() < id);
     }
 
     public void updateOthers() throws RemoteException, NotBoundException, MalformedURLException {
-        //TODO:
-        //Check why update is not working (all get the same successor(to everything).
-        //Migth be a id number size problem.
-        for(int i = 0; i < fingerTable.size() - 1; i++){
-            IdNode nodeId = findPredecessor(Chord.getFingerIdOf(getIdNode().getId(), i));
-            Node node = (Node)Naming.lookup(getLookupUrl(nodeId));
-            node.updateFingerTable(this.idNode, i);
+        Node self = this;
+        for(int i = 0; i < fingerTable.size(); i++){
+            int id = (getId() - (int)Math.pow(2, i)) % (int)Math.pow(2, fingerTable.size());
+            Node pred = findPredecessor(id);
+            pred.updateFingerTable(i, self);
         }
     }
-    public void updateFingerTable(IdNode idNode, int i) throws RemoteException, NotBoundException, MalformedURLException {
-        if(getIdNode().getId() <= idNode.getId() && idNode.getId() < getFinger(i).getIdNode().getId()){
-            setFingerIdSuccessor(i, idNode);
-            IdNode pId = getPredecessor();
-            Node p = (Node)Naming.lookup(getLookupUrl(pId));
-            p.updateFingerTable(idNode, i);
+
+    public void updateFingerTable(int index, Node node) throws RemoteException, NotBoundException, MalformedURLException {
+        Node self = this;
+        if(isIthFinger(node, self, getFingerNode(index))){ //Mejan specialare
+            setFingerNode(index, node);
+            Node pred = getPredecessor();
+            pred.updateFingerTable(index, node);
         }
     }
+    private boolean isIthFinger(Node check, Node first, Node last) throws RemoteException {
+        if(first.getId() <= last.getId()){
+            return (check.getId() >= first.getId() && check.getId() < last.getId());
+        } else{
+            return (check.getId() >= first.getId() || check.getId() < last.getId());
+        }
+    }
+
 
     public IdNode getIdNode() {
-        return idNode;
+        return this.idNode;
     }
 
-    public IdNode getSuccessor() {
-        return getFinger(0).getIdNode();
+    public Node getSuccessor() {
+        return getFingerNode(0);
     }
 
-    public IdNode getPredecessor() {
+    public Node getPredecessor() {
         return predecessor;
     }
 
-    public void setSuccessor(IdNode successor) {
+
+
+    public void setSuccessor(Node successor) {
         if(successor != null)
             //System.out.println("Set successor: " + successor.toString());
         this.successor = successor;
     }
 
-    public void setPredecessor(IdNode predecessor) {
+    public void setPredecessor(Node predecessor) {
         if(predecessor != null)
             //System.out.println("Set predecessor." + predecessor.toString());
         this.predecessor = predecessor;
