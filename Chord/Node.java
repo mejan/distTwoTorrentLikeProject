@@ -5,6 +5,8 @@ import java.net.MalformedURLException;
 import java.rmi.NotBoundException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * Created by heka1203 on 2016-04-22.
@@ -27,9 +29,11 @@ public interface Node extends Remote {
     public Node findSuccessor(int id) throws RemoteException , NotBoundException, MalformedURLException;
 
     public Node findClosestPrecedingFinger(int id) throws RemoteException;
-
+    public Node findPredecessor(int id) throws RemoteException, NotBoundException, MalformedURLException;
 
     public void updateFingerTable(int index, Node node) throws RemoteException, NotBoundException, MalformedURLException;
+    public void moveFileTable(Node newSucessor) throws RemoteException;
+    public void mergeFileTable(HashMap<Integer, ArrayList> mergeWith) throws RemoteException;
 
 
 }

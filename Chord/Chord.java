@@ -22,26 +22,27 @@ public class Chord {
             IdNode closestNodeId = superNode.getClosestNode(node.getIdNode());
             superNode.addNode(node.getIdNode());
             if(closestNodeId == null){
-
+                //System.out.println("I am all alone, where have you hidden my mother :'(. My Name is: "+node.getId());
                 for(int i = 0; i < node.getFingerTable().size(); i++){
-                    node.setFingerNode(0, node);
+                    node.setFingerNode(i, node);
                 }
                 node.setPredecessor(node);
-                node.setSuccessor(node);
+                //node.setSuccessor(node);
             }
 
 
             else{
                 Node closestNode = node.lookupNode(closestNodeId);
+                if(closestNode == null){ throw new RuntimeException("closest node is null?"); }
                 node.initFingerTable(closestNode);
                 node.updateOthers();
-                //TODO: Fix the update.
+                Node successor = node.getSuccessor();
+                successor.moveFileTable(node);
             }
-            System.out.println("\n\n");
+
 
         } catch (NotBoundException e) {
             System.err.println("(Join) There is no super node.......");
         }
     }
-
 }

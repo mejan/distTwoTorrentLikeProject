@@ -41,13 +41,15 @@ public class NodeList implements Serializable {
     public IdNode getClosestNode(IdNode idNode){
         if(idNode == null) throw new RuntimeException("Cannot search for null node");
         if(nodeList.isEmpty()) return null;
-
         synchronized (nodeList){
             int closestIndex = Collections.binarySearch(nodeList, idNode);
             if(closestIndex > 0)
-                return nodeList.get(closestIndex);
-            else
+                return nodeList.get(closestIndex + 1);
+            else{
                 return nodeList.get(0);
+
+            }
+
 
         }
     }

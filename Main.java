@@ -3,34 +3,60 @@
  */
 
 import Chord.*;
-import Server.SuperNodeImpl;
 
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.util.Enumeration;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.security.NoSuchAlgorithmException;
+import java.util.Scanner;
 
-import java.util.ArrayList;
 public class Main {
 
-    public static void main(String[] args)  {
+    public static void main(String[] args) throws IOException, NotBoundException, NoSuchAlgorithmException {
+        /*ArrayList<NodeImpl> nodes = new ArrayList<>();
+        
         try{
             SuperNodeImpl superNode = new SuperNodeImpl(5000);
-            ArrayList<NodeImpl> nodes = new ArrayList<>();
-            for(int port = 8000; port < 8003; port++){
+            //for(int port = 8000; port < 8015; port++){ //2 nodes
+            //for(int port = 8500; port > 8450; port--){
+            for(int port = 8000; port < 8007; port++){
                 Thread.sleep(100);
+                int rnd = (int)(Math.random() * (10000 - 6000) + 1) + 6000;
                 NodeImpl node = new NodeImpl(port);
                 Chord.join(node);
                 nodes.add(node);
             }
-
-
-
 
         }catch(Exception e){
             e.printStackTrace();
 
             System.exit(0);
         }
+        for(NodeImpl n : nodes){
+
+            if(n.getId() == 57763){
+                Node tmp = n.findSuccessor(40465);
+                System.out.println("Hops: " + n.nHops);
+                System.out.println("Hittade successor: "+tmp.getId()+" Det vi vill ha är: 15701");
+            }
+        }*/
+
+        Scanner input = new Scanner(System.in);
+
+        System.out.println("Enter path: ");
+        String in = input.nextLine();
+        Files.write(Paths.get(in+"asdf"), FileUtils.read(Paths.get(in)));
+
+        /*String arr[] = FileUtils.createChunks(in);
+        System.out.println("Enter new path and name: ");
+        String out = input.nextLine();
+        FileUtils.createFileFromChunks(in, arr, out);
+        for(String s : arr){
+            System.out.println("Chunk name: " + s);
+        }*/
 
         System.exit(0);
     }
