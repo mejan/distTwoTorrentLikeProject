@@ -11,10 +11,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by heka1203 on 2016-04-20.
@@ -218,12 +215,24 @@ public class NodeImpl extends UnicastRemoteObject implements Node {
             this.predecessor = predecessor;
     }
 
-    public void addNodeFileTable(int fileId, final Node node){
+    public void addNodeFileTable(int fileId, final Node node) throws RemoteException {
         if(!fileTable.containsKey(fileId)){ //List not init.
             ArrayList<Node> nodeList = new ArrayList<Node>(){{ add(node);}};
             fileTable.put(fileId, nodeList);
         } else {
             fileTable.get(fileId).add(node);
+        }
+        printFileTable();
+    }
+    private void printFileTable() throws RemoteException {
+        Iterator it = fileTable.entrySet().iterator();
+        while(it.hasNext()){
+            Map.Entry pair = (Map.Entry)it.next();
+            int fileId = (int)pair.getKey();
+            List<Node> nodeList = (List<Node>)pair.getKey();
+            for(Node n : nodeList){
+                System.out.format("File id:%d \t Node owner:%d", fileId, n.getId());
+            }
         }
     }
 

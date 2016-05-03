@@ -34,6 +34,7 @@ public interface Node extends Remote {
     public void updateFingerTable(int index, Node node) throws RemoteException, NotBoundException, MalformedURLException;
     public void moveFileTable(Node newSucessor) throws RemoteException;
     public void mergeFileTable(HashMap<Integer, ArrayList> mergeWith) throws RemoteException;
+    public void addNodeFileTable(int fileId, final Node node) throws RemoteException;
 
 
 }

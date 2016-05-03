@@ -4,12 +4,9 @@
 
 import Chord.*;
 
+import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.rmi.NotBoundException;
-import java.rmi.RemoteException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Scanner;
 
@@ -45,11 +42,9 @@ public class Main {
         }*/
 
         Scanner input = new Scanner(System.in);
-
-        System.out.println("Enter path: ");
         String in = input.nextLine();
-        Files.write(Paths.get(in+"asdf"), FileUtils.read(Paths.get(in)));
-
+        //FileUtils.splitFile(in);
+        FileUtils.getListOfFiles(new File(in));
         /*String arr[] = FileUtils.createChunks(in);
         System.out.println("Enter new path and name: ");
         String out = input.nextLine();

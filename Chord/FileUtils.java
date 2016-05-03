@@ -1,12 +1,10 @@
 package Chord;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
+import java.util.ArrayList;
+
 
 /**
  * Created by heka1203 on 2016-04-28.
@@ -15,66 +13,88 @@ public class FileUtils {
     private static final int chunkSize = 1024; //bytes
 
     private FileUtils(){}
-
-    public static byte[] read(Path path){
-        try {
-            return Files.readAllBytes(path);
-            //splitToChunks(readBytes, filepath);
-
-        } catch (IOException e) {
-            System.err.println("Could not read from file");
-        }
-        return null;
+    public static void splitFile(String path){
+        File file = new File(path);
+        splitFile(file);
     }
 
-    public static String[] createChunks(String filePath) throws NoSuchAlgorithmException {
-        Path path = Paths.get(filePath);
+    public static ArrayList<File> splitFile(File file){
 
-        if(Files.exists(path))
-            return splitToChunks(read(path), path);
+        String filename = file.getName();
+        String filepath = file.toString().replaceAll(""+filename+"", "");
 
-        return null;
-    }
 
-    public static void createFileFromChunks(String filepath, String[] chunkNames, String outFile) throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ArrayList<File> files = new ArrayList<File>();
 
-        for(int i = 0; i < chunkNames.length; i++){
-            Path path = Paths.get(filepath + chunkNames[i]);
-            out.write(Files.readAllBytes(path));
-        }
-        Files.write(Paths.get(outFile), out.toByteArray());
-    }
 
-    private static String[] splitToChunks(byte[] readBytes, Path path) throws NoSuchAlgorithmException {
-        System.out.println((int)Math.ceil(readBytes.length / (double)chunkSize));
-        int nChunks = (int)Math.ceil(readBytes.length / (double)chunkSize);
-        int chunkSize = readBytes.length / nChunks;
-        String chunkPath = path.toAbsolutePath().toString();
-        String chunkNames[] = new String[nChunks];
-        int offset = 0;
+        try(FileInputStream in = new FileInputStream(file)){
+            byte[] buf = new byte[chunkSize];
+            int readBytes = 0;
+            int chunk = 1;
+            while((readBytes = in.read(buf)) != -1){
+                //write to new file
+                String chunkName = String.valueOf(Hash.hash(filename + chunk));
+                File chunkFile = new File(filepath + chunkName);
+                try(FileOutputStream out = new FileOutputStream(chunkFile)){
+                    out.write(buf, 0, readBytes);
+                }
+                files.add(chunkFile);
+                ++chunk;
 
-        for(int i = 0; i < nChunks; i++){
-            byte[] buf;
-            String chunkName = String.valueOf(Hash.hash(path.getFileName().toString() + i));
 
-            buf = Arrays.copyOfRange(readBytes, offset, offset + chunkSize);
-            offset += chunkSize;
-            if(buf.length > 0){
-                writeChunkFiles(buf, Paths.get(chunkPath+chunkName));
-                chunkNames[i] = chunkName;
             }
-        }
-        return chunkNames;
-    }
 
-    private static void writeChunkFiles(byte[] readBytes, Path path){
 
-        try {
-            Files.write(path, readBytes);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
         } catch (IOException e) {
-            System.err.println("Could not write to file");
+            e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
         }
+        createListOfFiles(files, new File(filepath + "torrent.txt"));
+        //merge back
+        //mergeFiles(files, new File(filepath + filename + "new"));
+
+        return files;
+    }
+    public static void mergeFiles(ArrayList<File> files, File outFile){
+        try(FileOutputStream out = new FileOutputStream(outFile)) {
+            for(File f : files){
+                Files.copy(f.toPath(), out);
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+    public static void createListOfFiles(ArrayList<File> files, File outFile){
+        try(BufferedWriter writer = new BufferedWriter(new FileWriter(outFile))) {
+            for(File f : files){
+                writer.write(f.getName());
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public static ArrayList<File> getListOfFiles(File torrentFile){
+        ArrayList<File> files = null;
+        try(BufferedReader reader = new BufferedReader(new FileReader(torrentFile))) {
+            String line = "";
+            files = new ArrayList<>();
+            while((line = reader.readLine()) != null){
+                files.add(new File(line));
+            }
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return files;
     }
 
 }
