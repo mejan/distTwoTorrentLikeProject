@@ -53,6 +53,10 @@ public class NodeList implements Serializable {
 
         }
     }
+    public int size(){
+        return nodeList.size();
+    }
 
     private ArrayList<IdNode> nodeList;
+
 }

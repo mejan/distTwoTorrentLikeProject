@@ -3,60 +3,129 @@
  */
 
 import Chord.*;
+import Server.SuperNodeImpl;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Main {
+    public static ArrayList<NodeImpl> nodes = new ArrayList<>();
+
+    public static void listNodes(){
+        System.out.println("List of available nodes:");
+        for(Node node : nodes){
+            try {
+                System.out.println("Node with id: \t" + node.getId());
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static void listFilesInChord(){
+        try {
+            Chord.listAvailableFiles();
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (NotBoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static NodeImpl findNode(int id){
+        for(NodeImpl node : nodes)
+            if(node.getId() == id) return node;
+        return null;
+    }
+
+    public static void createDir(File file){
+        if(!file.exists())
+            file.mkdir();
+    }
 
     public static void main(String[] args) throws IOException, NotBoundException, NoSuchAlgorithmException {
-        /*ArrayList<NodeImpl> nodes = new ArrayList<>();
-        
-        try{
-            SuperNodeImpl superNode = new SuperNodeImpl(5000);
-            //for(int port = 8000; port < 8015; port++){ //2 nodes
-            //for(int port = 8500; port > 8450; port--){
-            for(int port = 8000; port < 8007; port++){
-                Thread.sleep(100);
-                int rnd = (int)(Math.random() * (10000 - 6000) + 1) + 6000;
-                NodeImpl node = new NodeImpl(port);
-                Chord.join(node);
-                nodes.add(node);
-            }
-
-        }catch(Exception e){
-            e.printStackTrace();
-
-            System.exit(0);
-        }
-        for(NodeImpl n : nodes){
-
-            if(n.getId() == 57763){
-                Node tmp = n.findSuccessor(40465);
-                System.out.println("Hops: " + n.nHops);
-                System.out.println("Hittade successor: "+tmp.getId()+" Det vi vill ha är: 15701");
-            }
-        }*/
+        SuperNodeImpl superNode = new SuperNodeImpl();
 
         Scanner input = new Scanner(System.in);
-        String in = input.nextLine();
-        //FileUtils.splitFile(in);
-        FileUtils.getListOfFiles(new File(in));
-        /*String arr[] = FileUtils.createChunks(in);
-        System.out.println("Enter new path and name: ");
-        String out = input.nextLine();
-        FileUtils.createFileFromChunks(in, arr, out);
-        for(String s : arr){
-            System.out.println("Chunk name: " + s);
-        }*/
+        System.out.println("Specify how many nodes to create");
+
+        int numNodes = input.nextInt();
+        System.out.println("Specify path where the node folders should be created: "); ///Users/heka1203/Documents/testingdist/
+        File nodesDir = new File(input.next());
+        for(int i = 0; i < numNodes; i++){
+            File nodeDir = new File(nodesDir, "node" + i);
+            createDir(nodeDir);
+
+            int port = (int)((Math.random() * (6000 - 3000) + 1) + 3000);
+            File downloads = new File(nodeDir, "downloads");
+            File uploads = new File(nodeDir, "uploads");
+            createDir(downloads);
+            createDir(uploads);
+            try {
+                NodeImpl node = new NodeImpl(port, downloads, uploads);
+                Chord.join(node);
+                nodes.add(node);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        System.out.println("Successfully created all nodes.");
+        String message = "1. List nodes available in chord ring.\n" +
+                "2. List files and file owner available in chord ring. \n" +
+                "3. Upload file from a specific node.\n" +
+                "4. Download file from a specific node. \n" +
+                "5. Start auto sim \n";
+        System.out.println(message);
+
+        loop: while(input.hasNext()){
+            int choice = input.nextInt();
+            switch(choice){
+                case 1:
+                    listNodes();
+                    break;
+                case 2:
+                    listFilesInChord();
+                    break;
+                case 3:{
+                    System.out.println("Enter which node to upload from:");
+                    Node node = findNode(input.nextInt());
+                    System.out.println("Enter which file to upload"); ///Users/heka1203/Documents/testingdist/node1/uploads/phpfJVW9D.png
+                    Chord.putFiles(new File(input.next()), node);
+                    break;
+                }
+
+                case 4: {
+                    System.out.println("Enter which node to download to:");
+                    NodeImpl node = findNode(input.nextInt());
+                    if(node == null) throw new RuntimeException("Node not found");
+                    System.out.println("Enter which file id to download");
+                    File file = new File(input.next());
+                    Chord.downloadFile(file, node);
+                    break;
+                }
+                case 5: {
+
+                }
+                default:
+                    break loop;
+            }
+            System.out.println(message);
+        }
 
         System.exit(0);
+
+
     }
 }
-
 
 /*Enumeration<NetworkInterface> nInterfaces = NetworkInterface.getNetworkInterfaces();
 

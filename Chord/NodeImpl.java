@@ -1,6 +1,12 @@
 package Chord;
 
 
+import Communication.RMIInputStream;
+import Communication.RMIInputStreamImpl;
+import Communication.RMIOutputStream;
+import Communication.RMIOutputStreamImpl;
+
+import java.io.*;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.UnknownHostException;
@@ -22,23 +28,40 @@ public class NodeImpl extends UnicastRemoteObject implements Node {
     private Node predecessor;
     private IdNode idNode;
     private ArrayList<Finger> fingerTable;
-    private HashMap<Integer, ArrayList> fileTable;
+    private FileTable fileTable;
     public int nHops;
 
-    public NodeImpl(int port) throws NoSuchAlgorithmException, RemoteException, UnknownHostException, AlreadyBoundException, MalformedURLException {
+    private File downloads;
+    private File uploads;
+    private Trust trust;
+
+
+    public NodeImpl(int port, File downloads, File uploads) throws NoSuchAlgorithmException, RemoteException, UnknownHostException, AlreadyBoundException, MalformedURLException {
         this.idNode = new IdNode(InetAddress.getLocalHost().getHostAddress(), port);
         this.fingerTable = new ArrayList<>(Hash.HASH_LENGTH);
-        this.fileTable = new HashMap<Integer, ArrayList>();
+        this.fileTable = new FileTable(new HashMap<Integer, ArrayList<Node>>());
 
         //init all indices
         for(int i = 0; i < Hash.HASH_LENGTH; i++){
             setFinger(i, new Finger((this.getId() + (int)Math.pow(2, i)) % (int)Math.pow(2, Hash.HASH_LENGTH), null));
         }
         register(port); //try register
+        if(!downloads.isDirectory() || !uploads.isDirectory()) throw new RuntimeException("Not a directory specified as upload or download path");
+        this.downloads = downloads;
+        this.uploads = uploads;
+        this.trust = new Trust(this);
     }
-
+    public File getUploads() throws RemoteException {
+        return uploads;
+    }
+    public File getDownloads() {
+        return downloads;
+    }
     public int getId(){
         return this.getIdNode().getId();
+    }
+    public int getPort(){
+        return this.getIdNode().getPort();
     }
 
     private void register(int port) throws RemoteException, AlreadyBoundException, MalformedURLException {
@@ -214,59 +237,85 @@ public class NodeImpl extends UnicastRemoteObject implements Node {
             //System.out.println("Set predecessor." + predecessor.toString());
             this.predecessor = predecessor;
     }
+    /*---------------filetable operations---------------*/
 
-    public void addNodeFileTable(int fileId, final Node node) throws RemoteException {
-        if(!fileTable.containsKey(fileId)){ //List not init.
-            ArrayList<Node> nodeList = new ArrayList<Node>(){{ add(node);}};
-            fileTable.put(fileId, nodeList);
-        } else {
-            fileTable.get(fileId).add(node);
-        }
-        printFileTable();
+    public void addEntryFileTable(int fileId, final Node owner) throws RemoteException {
+        this.fileTable.add(fileId, owner);
+
     }
-    private void printFileTable() throws RemoteException {
-        Iterator it = fileTable.entrySet().iterator();
-        while(it.hasNext()){
-            Map.Entry pair = (Map.Entry)it.next();
-            int fileId = (int)pair.getKey();
-            List<Node> nodeList = (List<Node>)pair.getKey();
-            for(Node n : nodeList){
-                System.out.format("File id:%d \t Node owner:%d", fileId, n.getId());
-            }
-        }
+
+    public void printFileTable() throws RemoteException {
+        this.fileTable.print();
     }
 
     public Node getNodeFileTable(int fileId){
-        if(fileTable.containsKey(fileId)) {
-            ArrayList<Node> nodeList = fileTable.get(fileId);
-            return nodeList.get((int) (Math.random() * nodeList.size()));
-        }
-        return null;
+        return this.fileTable.get(fileId);
     }
 
+    public void mergeFileTable(FileTable mergeWithFileTable) throws RemoteException{
+        this.fileTable.merge(mergeWithFileTable);
+    }
 
-    public void moveFileTable(Node newSucessor) throws RemoteException {
+    public void moveFileTable(Node newOwner) throws RemoteException {
         if(!fileTable.isEmpty()){
-            HashMap<Integer,ArrayList> toSend = new HashMap<Integer, ArrayList>();
 
-            Iterator it = fileTable.entrySet().iterator();
+            HashMap<Integer,ArrayList<Node>> fileTableToMove = new HashMap<>();
+            Iterator it = fileTable.getEntryIterator();
+
             while(it.hasNext()){
-
-                Map.Entry pair = (Map.Entry) it.next();
-                int key = (int)pair.getKey();
-
-                if(isBetweenSuccesor(key,this,newSucessor)){
-                    ArrayList<Node> nodeList = new ArrayList<Node>((ArrayList)pair.getValue());
-                    toSend.put(key,nodeList);
+                Map.Entry entry = (Map.Entry)it.next();
+                int fileId = (int)entry.getKey();
+                if(isBetweenSuccesor(fileId, this, newOwner)){
+                    fileTableToMove.put(fileId, (ArrayList)entry.getValue());
                     it.remove();
+
                 }
+
             }
-            if(!toSend.isEmpty())
-                newSucessor.mergeFileTable(toSend);
+            if(!fileTableToMove.isEmpty()){
+                newOwner.mergeFileTable(new FileTable(fileTableToMove));
+            }
+
         }
     }
 
-    public void mergeFileTable(HashMap<Integer, ArrayList> mergeWith){
-        fileTable.putAll(mergeWith);
+
+    /*---------------END filetable operations---------------*/
+
+    /*---------------BEGIN stream operations----------------*/
+    @Override
+    public OutputStream getOutputStream(File file) throws FileNotFoundException, RemoteException {
+        return new RMIOutputStream(new RMIOutputStreamImpl(new FileOutputStream(file), getPort()));
     }
+
+    @Override
+    public InputStream getInputStream(File file) throws FileNotFoundException, RemoteException {
+        file = new File(getUploads(),file.toString());
+        return new RMIInputStream(new RMIInputStreamImpl(new FileInputStream(file), getPort()));
+    }
+
+    public void copy(InputStream in, OutputStream out){
+        FileUtils.copy(in, out);
+    }
+
+    public void download(Node owner, File src) throws FileNotFoundException, RemoteException, MalformedURLException, NotBoundException {
+            //Destination file
+        File dest = new File(downloads, src.getName());
+        long time = System.currentTimeMillis();
+        copy(owner.getInputStream(src), new FileOutputStream(dest));
+        time = (System.currentTimeMillis() - time) / 1000;
+        System.out.println("Download speed: " + time / FileUtils.chunkSize / 1000000d + " MB/s");
+
+    }
+    /*---------------END stream operations----------------*/
+
+    /*---------------BEGIN trust operations---------------*/
+    public double getNodeRating(int neighbor) throws RemoteException{
+        return trust.getNodeRating(neighbor);
+    }
+    public boolean isTrusted(int ownerId) throws RemoteException, NotBoundException, MalformedURLException {
+        return trust.isTrusted(ownerId);
+    }
+
+    /*---------------END trust operations-----------------*/
 }

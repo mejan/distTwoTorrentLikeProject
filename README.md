@@ -1,4 +1,9 @@
-#"Torrent Like"
-This is a school project with fjantztone and I.
+# "Torrent Like" simulation
+This in an chord ring p2p network (only join operation) with trust reputation and chunk based file sharing.
+It's meant as a simulation for a project in distributed system.
 
-It will probably be far from a torrent system and will probably contain bugs.
+# NOT supported
+This project doesn't support:
+    1. a real-world enviorment.
+    2. leaving of nodes.
+    3. true trust value (based on random values).
