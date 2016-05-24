@@ -2,10 +2,7 @@ package Server;
 
 import java.io.File;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by heka1203 on 2016-05-04.
@@ -43,7 +40,8 @@ public class FileList implements Serializable {
         return null;
     }
     public File getRandomFile(){
+        Random random = new Random();
         ArrayList<String> filenames = new ArrayList<String>(fileList.keySet());
-        return new File(filenames.get((int)(Math.random() + filenames.size())));
+        return new File(filenames.get(random.nextInt(filenames.size())));
     }
 }
