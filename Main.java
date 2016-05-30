@@ -3,6 +3,7 @@
  */
 
 import Chord.*;
+import Server.FileList;
 import Server.SuperNodeImpl;
 
 import java.io.File;
@@ -12,7 +13,10 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Random;
 import java.util.Scanner;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Main {
     public static ArrayList<NodeImpl> nodes = new ArrayList<>();
@@ -28,17 +32,7 @@ public class Main {
         }
     }
 
-    public static void listFilesInChord(){
-        try {
-            Chord.listAvailableFiles();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } catch (NotBoundException e) {
-            e.printStackTrace();
-        }
-    }
+
 
     public static NodeImpl findNode(int id){
         for(NodeImpl node : nodes)
@@ -51,7 +45,7 @@ public class Main {
             file.mkdir();
     }
 
-    public static void main(String[] args) throws IOException, NotBoundException, NoSuchAlgorithmException {
+    public static void main(String[] args) throws IOException, NotBoundException, NoSuchAlgorithmException, InterruptedException {
         SuperNodeImpl superNode = new SuperNodeImpl();
 
         Scanner input = new Scanner(System.in);
@@ -64,7 +58,7 @@ public class Main {
             File nodeDir = new File(nodesDir, "node" + i);
             createDir(nodeDir);
 
-            int port = (int)((Math.random() * (6000 - 3000) + 1) + 3000);
+            int port = 11000 + i;
             File downloads = new File(nodeDir, "downloads");
             File uploads = new File(nodeDir, "uploads");
             createDir(downloads);
@@ -79,8 +73,7 @@ public class Main {
         }
 
         System.out.println("Successfully created all nodes.");
-        String message = "1. List nodes available in chord ring.\n" +
-                "2. List files and file owner available in chord ring. \n" +
+        String message = "\n1. List nodes available in chord ring.\n" +
                 "3. Upload file from a specific node.\n" +
                 "4. Download file from a specific node. \n" +
                 "5. Start auto sim \n";
@@ -91,9 +84,6 @@ public class Main {
             switch(choice){
                 case 1:
                     listNodes();
-                    break;
-                case 2:
-                    listFilesInChord();
                     break;
                 case 3:{
                     System.out.println("Enter which node to upload from:");
@@ -114,6 +104,64 @@ public class Main {
                 }
                 case 5: {
 
+
+                    FileList files = Chord.getAvailableFiles();
+                    long runtime = 30 * 1000;
+                    long currentTime = System.currentTimeMillis();
+                    boolean done = false;
+                    final int nChunks = 9;
+                    while(!done){
+                        Random random = new Random();
+                        NodeImpl node = nodes.get(random.nextInt(nodes.size()));
+                        //take 9 chunks at a time
+
+                        for(int i = 0; i < nChunks; i++){
+                            File chunk = files.getRandomChunk();
+                            Chord.downloadFile(chunk, node);
+                        }
+                        done = (Math.abs(currentTime - System.currentTimeMillis()) >= runtime);
+                    }
+                    /*int numberOfChunks = Chord.getNumberOfChunks("test.jpg");
+                    for(NodeImpl n : nodes){
+                        System.out.println("Responsible for # of chunks: " + n.getLengthOfFileTable());
+                    }*/
+                    /*int nNodes = nodes.size();
+                    String simInfo = "Simulation time: " + runtime + "\n"+
+                            "Number of nodes: " + nNodes + "\n"+
+                            "Number of chunks downloaded each time per node: " + nChunks + "\n";
+                    HopLog hopLog = new HopLog(new File("/home/mejan/Documents/" + String.valueOf(nNodes) + ".txt"));
+                    double totalSearches = 0;
+                    double totalHops = 0;
+                    double coutedhops = 0;
+                    for(NodeImpl n : nodes){
+                        double nHops = n.getNumberOfhops();
+                        double nSearches = n.getNumberOfSearches();
+                        if(nHops != 0.0 && nSearches != 0.0){
+                            coutedhops += 1;
+                            hopLog.append(String.valueOf(nHops));
+                            totalHops += nHops;
+                            totalSearches += nSearches;
+
+                        }
+
+                    }
+                    double avgNHops = totalHops / coutedhops;
+
+                    simInfo += "Avg. Number of searches per node: " + (double)totalSearches / nNodes + "\n" +
+                            "Total number of hops: " + totalHops + "\n" +
+                            "Total number of searches: " + totalSearches + "\n";
+                    simInfo += "Avg. Number of hops: " + avgNHops;
+
+                    hopLog.append(simInfo);
+                    hopLog.write();*/
+                    double trueTrust =0;
+                    for(NodeImpl node: nodes){
+                        if(node.getPrevStartValue() >= 0.5){
+                            trueTrust += 1;
+                        }
+                    }
+                    System.out.println("Real trust procentage: " + trueTrust/Chord.getNumberOfNodesInChord());
+                    System.out.println("Trusted ratio: " + Chord.getTrustedRatio());
                 }
                 default:
                     break loop;
@@ -126,14 +174,3 @@ public class Main {
 
     }
 }
-
-/*Enumeration<NetworkInterface> nInterfaces = NetworkInterface.getNetworkInterfaces();
-
-while (nInterfaces.hasMoreElements()) {
-    Enumeration<InetAddress> inetAddresses = nInterfaces.nextElement().getInetAddresses();
-    while (inetAddresses.hasMoreElements()) {
-        String address = inetAddresses.nextElement().getHostAddress();
-        if(address.contains("192.168"))
-            System.out.println(address);
-    }
-}*/

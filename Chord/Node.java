@@ -53,6 +53,7 @@ public interface Node extends Remote {
     public InputStream getInputStream(File file) throws RemoteException, FileNotFoundException;
     public File getUploads() throws RemoteException;
 
-    public double getNodeRating(int neighbor) throws RemoteException;
+    public double getNodeRating(Node neighbor) throws RemoteException;
+    public double getPrevStartValue() throws RemoteException;
 
 }

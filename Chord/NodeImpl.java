@@ -29,7 +29,9 @@ public class NodeImpl extends UnicastRemoteObject implements Node {
     private IdNode idNode;
     private ArrayList<Finger> fingerTable;
     private FileTable fileTable;
-    public int nHops;
+
+    public int nHops = 0;
+    public int nSearches = 0;
 
     private File downloads;
     private File uploads;
@@ -146,12 +148,12 @@ public class NodeImpl extends UnicastRemoteObject implements Node {
 
     public Node findPredecessor(int id) throws RemoteException, NotBoundException, MalformedURLException {
         Node node = this;
-        int hops = 0;
+
         while(!isBetweenSuccesor(id, node, node.getSuccessor())){
             node = node.findClosestPrecedingFinger(id);
-            ++hops;
+            ++nHops;
         }
-        nHops = hops;
+
         return node;
     }
 
@@ -304,18 +306,34 @@ public class NodeImpl extends UnicastRemoteObject implements Node {
         long time = System.currentTimeMillis();
         copy(owner.getInputStream(src), new FileOutputStream(dest));
         time = (System.currentTimeMillis() - time) / 1000;
-        System.out.println("Download speed: " + time / FileUtils.chunkSize / 1000000d + " MB/s");
+        ++nSearches;
 
     }
     /*---------------END stream operations----------------*/
 
     /*---------------BEGIN trust operations---------------*/
-    public double getNodeRating(int neighbor) throws RemoteException{
+    public double getNodeRating(Node neighbor) throws RemoteException{
         return trust.getNodeRating(neighbor);
     }
-    public boolean isTrusted(int ownerId) throws RemoteException, NotBoundException, MalformedURLException {
+
+    public boolean isTrusted(final Node ownerId) throws RemoteException, NotBoundException, MalformedURLException {
         return trust.isTrusted(ownerId);
     }
 
     /*---------------END trust operations-----------------*/
+    public double getNumberOfhops() {
+        if(nSearches == 0) return 0.0;
+        return (double)nHops / nSearches;
+    }
+    public double getPrevStartValue(){
+        return trust.getPrevStartValue();
+    }
+    public int getNumberOfSearches(){
+        return nSearches;
+    }
+    public int getLengthOfFileTable(){
+        return this.fileTable.size();
+    }
+
+
 }

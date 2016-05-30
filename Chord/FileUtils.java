@@ -107,10 +107,16 @@ public class FileUtils {
             while((readBytes = in.read(buf)) >= 0){
                 out.write(buf, 0, readBytes);
             }
-            in.close();
-            out.close();
+
         } catch (IOException e) {
-            System.err.println("Could not read / write or close from streams.");
+            System.err.println("Could not read / write from streams.");
+        } finally{
+            try{
+                in.close();
+                out.close();
+            } catch (IOException e) {
+                System.err.println("Could not close streams");
+            }
         }
 
 

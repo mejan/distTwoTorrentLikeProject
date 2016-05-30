@@ -40,13 +40,13 @@ public class FileTable implements Serializable {
     }
     public Node get(int fileId){
         if(fileTable.containsKey(fileId)){
-            System.out.println("Size of filetable: " + fileTable.get(fileId).size());
             ArrayList<Node> nodes = fileTable.get(fileId);
             return nodes.get(ThreadLocalRandom.current().nextInt(nodes.size()));
         }
 
         return null;
     }
+
     public void merge(FileTable mergeWithFileTable){
         merge(mergeWithFileTable);
     }
@@ -58,6 +58,9 @@ public class FileTable implements Serializable {
 
     public boolean isEmpty(){
         return fileTable.isEmpty();
+    }
+    public int size(){
+        return fileTable.size();
     }
 
     public HashMap<Integer, ArrayList<Node>> getFileTable(){

@@ -30,6 +30,10 @@ public class Chord {
 
     }
     public static final int superNodePort = 7000;
+    private static int nTrusted = 0;
+    private static int nUntrusted = 0;
+    private static int nPuts = 0;
+
 
 
     public static void join(NodeImpl node) throws IOException {
@@ -39,7 +43,6 @@ public class Chord {
             IdNode closestNodeId = superNode.getClosestNode(node.getIdNode());
             superNode.addNode(node.getIdNode());
             if(closestNodeId == null){
-                //System.out.println("I am all alone, where have you hidden my mother :'(. My Name is: "+node.getId());
                 for(int i = 0; i < node.getFingerTable().size(); i++){
                     node.setFingerNode(i, node);
                 }
@@ -68,15 +71,11 @@ public class Chord {
         int fileId = Integer.parseInt(file.getName());
         Node successor = node.findSuccessor(fileId);
         successor.addEntryFileTable(fileId, node);
-        //successor.
-
-        //listAvailableFiles();
     }
 
     //Putting a "file"
     public static void putFiles(File file, Node node) throws RemoteException, NotBoundException, MalformedURLException {
         ArrayList<File> files = FileUtils.splitFile(file, node.getUploads());
-        System.out.println("Original order:");
         for(File f : files){
             putFile(f, node);
             System.out.println(f.getName());
@@ -85,7 +84,7 @@ public class Chord {
         if(superNode != null){ //add whole filename and its  chunks to supernode list
             superNode.addFile(file.getName(), files);
         }
-        System.out.println("Node with id: " + node.getId() + " added file: " + file.getName());
+
     }
 
     /*TODO: 1. Do some tests
@@ -93,24 +92,30 @@ public class Chord {
 
     public static Node lookup(File file, Node node) throws RemoteException, NotBoundException, MalformedURLException {
         int fileId = Integer.parseInt(file.getName());
+        if(node.getNodeFileTable(fileId) != null) return node;
         Node successor = node.findSuccessor(fileId);
         Node fileOwner = successor.getNodeFileTable(fileId);
-        System.out.println("File owner of file id: " + fileId + " is node with id: " + fileOwner.getId());
+
         return fileOwner;
     }
 
-    public static void downloadFile(File file, NodeImpl self) throws FileNotFoundException, RemoteException, MalformedURLException, NotBoundException {
+    public static void downloadFile(File file, NodeImpl self) throws FileNotFoundException, RemoteException, MalformedURLException, NotBoundException, InterruptedException {
+
         Node fileOwner = lookup(file, self);
-        if(self.isTrusted(fileOwner.getId())) {
-            System.out.println("This node is trusted: " + fileOwner.getId());
+        if(fileOwner == self) return;
+        if(self.isTrusted(fileOwner) /*true*/) { // just for simulation
+
+            ++nTrusted;
+            //trustLog.append("Node is TRUSTED:" + fileOwner.getId());
             self.download(fileOwner, file);
             putFile(file, self);
             FileUtils.copy(new FileInputStream(new File(self.getDownloads(), file.getName())), new FileOutputStream(new File(self.getUploads(), file.getName())));
         } else{
-            System.out.println("This node is not trusted!!!!!!: "+ fileOwner.getId());
+            ++nUntrusted;
+            //trustLog.append("!!!Node is NOT TRUSTED!!!: "+ fileOwner.getId());
         }
     }
-    public static void downloadFiles(File file, NodeImpl self) throws RemoteException, FileNotFoundException, MalformedURLException, NotBoundException {
+    public static void downloadFiles(File file, NodeImpl self) throws RemoteException, FileNotFoundException, MalformedURLException, NotBoundException, InterruptedException {
         SuperNode superNode = (SuperNode)Naming.lookup("//" + superNodeIp + ":" + superNodePort + "/superNode");
 
         FileList fileList = superNode.getFileList();
@@ -126,7 +131,6 @@ public class Chord {
         }
         FileUtils.mergeFiles(localFiles, new File(self.getDownloads(), file.getName()));
 
-        //call on put the file togather..?
     }
 
     public static FileList getAvailableFiles() throws RemoteException, MalformedURLException, NotBoundException {
@@ -134,19 +138,19 @@ public class Chord {
         SuperNode superNode = (SuperNode)Naming.lookup("//" + superNodeIp + ":" + superNodePort + "/superNode");
         return superNode.getFileList();
 
-
-        /*Iterator it = fileTable.entrySet().iterator();
-        while(it.hasNext()){
-            Map.Entry pair = (Map.Entry) it.next();
-            String filename = (String)pair.getKey();
-            ArrayList<File> files = (ArrayList<File>)pair.getValue();
-            System.out.println("File is: " + filename);
-            for(File file : files){
-                System.out.println("id: " + file.getName());
-            }
-            System.out.println("\n\n");
-        }*/
     }
+    public static int getNumberOfNodesInChord() throws RemoteException, NotBoundException, MalformedURLException {
+        SuperNode superNode = (SuperNode)Naming.lookup("//" + Chord.superNodeIp + ":" + Chord.superNodePort + "/superNode");
+        return superNode.getNumberOfNodes();
+    }
+    public static int getNumberOfChunks(String filename) throws RemoteException, NotBoundException, MalformedURLException {
+        FileList fileList = getAvailableFiles();
+        return fileList.getNumberOfChunks(filename);
+    }
+    public static double getTrustedRatio(){
+        return (double)nTrusted / (nTrusted + nUntrusted);
+    }
+
 
 
 }

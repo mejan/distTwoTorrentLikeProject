@@ -39,9 +39,16 @@ public class FileList implements Serializable {
 
         return null;
     }
-    public File getRandomFile(){
+    public int getNumberOfChunks(String filename){
+        return find(filename).size();
+    }
+    public File getRandomChunk(){
+        if(fileList.isEmpty()) return null;
         Random random = new Random();
         ArrayList<String> filenames = new ArrayList<String>(fileList.keySet());
-        return new File(filenames.get(random.nextInt(filenames.size())));
+        String filename = filenames.get(random.nextInt(filenames.size()));
+        ArrayList<File> chunks = fileList.get(filename);
+        return chunks.get(random.nextInt(chunks.size()));
     }
+
 }
